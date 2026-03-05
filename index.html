@@ -79,7 +79,7 @@
             seal.rotation = Math.min(Math.PI/4, Math.max(-Math.PI/4, seal.velocity * 0.1));
 
             pipeTimer += deltaTime || 0;
-            if (pipeTimer > 750) { // Tvých 50% blíž k sobě!
+            if (pipeTimer > 1200) { // Tvých 50% blíž k sobě!
                 createPipe();
                 pipeTimer = 0;
             }
