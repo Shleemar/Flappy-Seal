@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seal Jump Adventure</title>
+    <style>
+        /* Tady je tvůj Vibe (CSS) */
+        body { 
+            margin: 0; display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; height: 100vh; background: linear-gradient(to bottom, #1e3c72, #2a5298);
+            font-family: sans-serif; overflow: hidden; color: white; touch-action: manipulation;
+        }
+        canvas { 
+            border: 5px solid #fff; background: #70c5ce; border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); max-width: 100%; height: auto;
+        }
+        #ui { font-size: 40px; font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px #000; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">Skóre: 0</div>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <script>
+        // Tady je tvůj mozek hry (JavaScript)
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const ui = document.getElementById('ui');
+
+        let seal = { x: 70, y: 300, w: 45, h: 30, velocity: 0, gravity: 0.25, jump: -6, rotation: 0 };
+        let pipes = [];
+        let score = 0;
+        let gameOver = false;
+        let lastTime = 0;
+        let pipeTimer = 0;
+
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') jump(); });
+        canvas.addEventListener('mousedown', jump);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+
+        function jump() {
+            if (gameOver) return reset();
+            seal.velocity = seal.jump;
+        }
+
+        function reset() {
+            seal.y = 300; seal.velocity = 0; pipes = []; score = 0; gameOver = false; pipeTimer = 0;
+            ui.innerText = "Skóre: 0";
+            requestAnimationFrame(update);
+        }
+
+        function createPipe() {
+            let gap = 180; // Trochu víc místa, když jsou teď u sebe
+            let height = Math.floor(Math.random() * (canvas.height - gap - 160)) + 80;
+            pipes.push({ x: canvas.width, top: height, bottom: canvas.height - height - gap, passed: false });
+        }
+
+        function drawSeal(x, y, rotation) {
+            ctx.save();
+            ctx.translate(x + 22, y + 15);
+            ctx.rotate(rotation);
+            ctx.fillStyle = "#A9A9A9";
+            ctx.beginPath(); ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2); ctx.fill(); // Tělo
+            ctx.beginPath(); ctx.arc(13, -5, 10, 0, Math.PI * 2); ctx.fill(); // Hlava
+            ctx.fillStyle = "black";
+            ctx.beginPath(); ctx.arc(18, -7, 2, 0, Math.PI * 2); ctx.fill(); // Oko
+            ctx.restore();
+        }
+
+        function update(timestamp) {
+            if (gameOver) return;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            seal.velocity += seal.gravity;
+            seal.y += seal.velocity;
+            seal.rotation = Math.min(Math.PI/4, Math.max(-Math.PI/4, seal.velocity * 0.1));
+
+            pipeTimer += deltaTime || 0;
+            if (pipeTimer > 750) { // Tvých 50% blíž k sobě!
+                createPipe();
+                pipeTimer = 0;
+            }
+
+            pipes.forEach((pipe, index) => {
+                pipe.x -= 3.5;
+                if (seal.x + 30 > pipe.x && seal.x + 5 < pipe.x + 60) {
+                    if (seal.y + 5 < pipe.top || seal.y + 25 > canvas.height - pipe.bottom) gameOver = true;
+                }
+                if (pipe.x + 60 < seal.x && !pipe.passed) {
+                    score++; pipe.passed = true; ui.innerText = "Skóre: " + score;
+                }
+                if (pipe.x < -60) pipes.splice(index, 1);
+            });
+
+            if (seal.y + seal.h > canvas.height || seal.y < 0) gameOver = true;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pipes.forEach(pipe => {
+                ctx.fillStyle = "#e0f7fa";
+                ctx.fillRect(pipe.x, 0, 60, pipe.top);
+                ctx.fillRect(pipe.x, canvas.height - pipe.bottom, 60, pipe.bottom);
+                ctx.strokeStyle = "white"; ctx.strokeRect(pipe.x, 0, 60, pipe.top);
+                ctx.strokeRect(pipe.x, canvas.height - pipe.bottom, 60, pipe.bottom);
+            });
+            drawSeal(seal.x, seal.y, seal.rotation);
+
+            if (!gameOver) requestAnimationFrame(update);
+            else {
+                ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0,0,canvas.width, canvas.height);
+                ctx.fillStyle = "white"; ctx.textAlign = "center";
+                ctx.font = "24px Arial"; ctx.fillText("KONEC DOBRODRUŽSTVÍ", canvas.width/2, 300);
+            }
+        }
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>
